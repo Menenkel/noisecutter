@@ -34,6 +34,7 @@
     <div id="map"></div>
     <div id="data-panel">
         <h3>Click a country to see disaster stats</h3>
+        <pre id="country-data"></pre>
     </div>
     <div id="search-container">
         <input type="text" id="country-search" placeholder="Search for a country or click on the map">
@@ -77,14 +78,7 @@
             },
             onEachFeature: function (feature, layer) {
                 layer.on("click", function () {
-                    displayData(feature.properties);
-                });
-            },
-            pointToLayer: function (feature, latlng) {
-                return L.circleMarker(latlng, {
-                    radius: 0,
-                    opacity: 0,
-                    fillOpacity: 0
+                    displayData(feature);
                 });
             }
         }).addTo(map);
@@ -123,23 +117,8 @@
                 });
         }
 
-        function displayData(props) {
-            let disasterDetails;
-            try {
-                disasterDetails = JSON.parse(props.Disaster_Info)
-                    .map(d => `<b>${d.Type}</b>: ${d.Count} disasters, ${d["People Affected Since 2000"]} affected`)
-                    .join("<br>");
-            } catch (e) {
-                console.error("Error parsing Disaster_Info JSON:", e);
-                disasterDetails = "No data available";
-            }
-            
-            document.getElementById("data-panel").innerHTML = `
-                <h3>${props.Country}</h3>
-                <p><b>Total Affected:</b> ${props.Total_Affected.toLocaleString()}</p>
-                <p><b>Disaster Breakdown:</b></p>
-                ${disasterDetails}
-            `;
+        function displayData(feature) {
+            document.getElementById("country-data").textContent = JSON.stringify(feature, null, 2);
         }
 
         fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
