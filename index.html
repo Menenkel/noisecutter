@@ -33,9 +33,9 @@
     <script>
         var map = L.map('map').setView([20, 0], 2);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of Humanitarian OpenStreetMap Team'
+}).addTo(map);
         
         function searchCountry() {
             var country = document.getElementById('country-search').value.trim();
