@@ -120,7 +120,7 @@
         }
 
         function displayData(props) {
-            if (!props || !props.Disaster_Info) {
+            if (!props || !props.Disaster_Info || !Array.isArray(props.Disaster_Info)) {
                 document.getElementById("country-data").innerHTML = "<p>No data available</p>";
                 return;
             }
