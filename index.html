@@ -18,12 +18,26 @@
             background: white;
             box-shadow: -2px 0 5px rgba(0,0,0,0.3);
         }
+        #search-container {
+            position: absolute;
+            top: 10px;
+            right: 60px; /* Moved to the right */
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="data-panel">
         <h3>Click a country to see disaster stats</h3>
+    </div>
+    <div id="search-container">
+        <input type="text" id="country-search" placeholder="Search for a country or click on the map">
+        <button onclick="searchCountry()">Search</button>
     </div>
 
     <script>
@@ -59,6 +73,32 @@
 
         L.control.layers(baseMaps).addTo(map);
 
+        function searchCountry() {
+            var country = document.getElementById('country-search').value.trim();
+            if (!country) {
+                alert("Please enter a country name.");
+                return;
+            }
+            var encodedCountry = encodeURIComponent(country);
+            fetch(`https://nominatim.openstreetmap.org/search?country=${encodedCountry}&format=json&limit=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        var boundingBox = data[0].boundingbox.map(Number);
+                        var southWest = L.latLng(boundingBox[0], boundingBox[2]);
+                        var northEast = L.latLng(boundingBox[1], boundingBox[3]);
+                        var bounds = L.latLngBounds(southWest, northEast);
+                        map.fitBounds(bounds);
+                    } else {
+                        alert("Country not found. Try a different name.");
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching location:", error);
+                    alert("Failed to retrieve location. Try again later.");
+                });
+        }
+
         function displayData(props) {
             let disasterDetails = JSON.parse(props.Disaster_Info)
                 .map(d => `<b>${d.Type}</b>: ${d.Count} events, ${d["People Affected Since 2000"]} affected`)
@@ -75,6 +115,9 @@
             .then(response => response.json())
             .then(data => {
                 L.geoJSON(data, {
+                    style: function () {
+                        return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
+                    },
                     onEachFeature: function (feature, layer) {
                         layer.on("click", function () {
                             displayData(feature.properties);
