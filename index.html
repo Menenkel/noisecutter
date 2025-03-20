@@ -38,6 +38,10 @@
         var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of Humanitarian OpenStreetMap Team'
         });
+        
+        var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB, OpenStreetMap contributors'
+        });
 
         var map = L.map('map', {
             center: [20, 0],
@@ -47,7 +51,8 @@
 
         var baseMaps = {
             "Standard OSM": osmStandard,
-            "Humanitarian OSM": osmHot
+            "Humanitarian OSM": osmHot,
+            "Dark Map": darkMap
         };
 
         L.control.layers(baseMaps).addTo(map);
@@ -101,4 +106,3 @@
     </script>
 </body>
 </html>
-
