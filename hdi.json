@@ -1,0 +1,155 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Afghanistan",
+        "iso3": "AFG",
+        "hdi_2021": 0.478
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          67.71,
+          33.9391
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Angola",
+        "iso3": "AGO",
+        "hdi_2021": 0.586
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          17.8739,
+          -11.2027
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Albania",
+        "iso3": "ALB",
+        "hdi_2021": 0.796
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.1683,
+          41.1533
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Andorra",
+        "iso3": "AND",
+        "hdi_2021": 0.858
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1.5211,
+          42.5078
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "United Arab Emirates",
+        "iso3": "ARE",
+        "hdi_2021": 0.911
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          53.8478,
+          23.4241
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Argentina",
+        "iso3": "ARG",
+        "hdi_2021": 0.842
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -63.6167,
+          -38.4161
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Armenia",
+        "iso3": "ARM",
+        "hdi_2021": 0.759
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          45.0382,
+          40.0691
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Australia",
+        "iso3": "AUS",
+        "hdi_2021": 0.951
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          133.7751,
+          -25.2744
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Austria",
+        "iso3": "AUT",
+        "hdi_2021": 0.916
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          14.5501,
+          47.5162
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "country": "Azerbaijan",
+        "iso3": "AZE",
+        "hdi_2021": 0.745
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          47.5769,
+          40.1431
+        ]
+      }
+    }
+  ]
+}
