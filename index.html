@@ -17,6 +17,8 @@
             overflow-y: auto;
             background: white;
             box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+            font-size: 14px;
+            line-height: 1.5;
         }
         #search-container {
             position: absolute;
@@ -28,13 +30,17 @@
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
+        .disaster-type {
+            font-weight: bold;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="data-panel">
         <h3>Click a country to see disaster stats</h3>
-        <pre id="country-data"></pre>
+        <div id="country-data"></div>
     </div>
     <div id="search-container">
         <input type="text" id="country-search" placeholder="Search for a country or click on the map">
@@ -78,7 +84,7 @@
             },
             onEachFeature: function (feature, layer) {
                 layer.on("click", function () {
-                    displayData(feature);
+                    displayData(feature.properties);
                 });
             }
         }).addTo(map);
@@ -117,12 +123,16 @@
                 });
         }
 
-        function displayData(feature) {
-            if (feature && feature.properties) {
-                document.getElementById("country-data").textContent = JSON.stringify(feature, null, 2);
-            } else {
-                document.getElementById("country-data").textContent = "No data available";
-            }
+        function displayData(props) {
+            let content = `<h3>${props.Country} (${props.ISO})</h3>`;
+            content += `<p><b>Total People Affected Since 2000:</b> ${props.Total_Affected.toLocaleString()}</p>`;
+            content += `<h4>Disaster Breakdown:</h4>`;
+            content += `<ul>`;
+            props.Disaster_Info.forEach(d => {
+                content += `<li class="disaster-type">${d.Type}: ${d.Count} events, ${d.Affected.toLocaleString()} affected</li>`;
+            });
+            content += `</ul>`;
+            document.getElementById("country-data").innerHTML = content;
         }
 
         fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
