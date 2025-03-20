@@ -35,7 +35,7 @@
 <body>
     <div id="map"></div>
     <div id="data-panel">
-        <h3>Click a country to see disaster stats</h3>
+        <h3>Click a country or hospital to see details</h3>
         <div id="country-data"></div>
     </div>
     <div id="search-container">
@@ -74,6 +74,33 @@
             "Satellite View": satelliteMap
         };
 
+        // Unified display function to handle both global and hospital data
+        function displayData(props) {
+            let content = "";
+            // Check for global EMDAT disaster data
+            if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
+                content += `<h3>${props.Country} (${props.ISO})</h3>`;
+                props.Disaster_Info.forEach(d => {
+                    let affectedRaw = d["People Affected Since 2000"] || "0";
+                    let affected = parseInt(affectedRaw.replace(/,/g, ""), 10).toLocaleString();
+                    content += `<p>Type: ${d.Type}</p>`;
+                    content += `<p>Count: ${d.Count}</p>`;
+                    content += `<p>Affected: ${affected}</p>`;
+                    content += `<hr>`;
+                });
+            }
+            // Check for hospital data (Sudan health data)
+            else if (props["#loc+amenity"] && props["#meta+healthcare"] && props["#loc +name"]) {
+                content += `<h3>${props["#loc +name"]}</h3>`;
+                content += `<p>Amenity: ${props["#loc+amenity"]}</p>`;
+                content += `<p>Healthcare: ${props["#meta+healthcare"]}</p>`;
+            } else {
+                content = "<p>No data available</p>";
+            }
+            document.getElementById("country-data").innerHTML = content;
+        }
+
+        // Global disaster data layer
         var emdatLayer = L.geoJSON(null, {
             style: function () {
                 return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
@@ -85,9 +112,15 @@
             }
         }).addTo(map);
 
+        // Sudan health data layer
         var sudanLayer = L.geoJSON(null, {
             style: function () {
                 return { color: "#0000ff", weight: 1, fillOpacity: 0.4 };
+            },
+            onEachFeature: function (feature, layer) {
+                layer.on("click", function () {
+                    displayData(feature.properties);
+                });
             }
         }).addTo(map);
 
@@ -117,26 +150,6 @@
                     console.error("Error fetching location:", error);
                     alert("Failed to retrieve location. Try again later.");
                 });
-        }
-
-        function displayData(props) {
-            if (!props || !props.Disaster_Info || !Array.isArray(props.Disaster_Info)) {
-                document.getElementById("country-data").innerHTML = "<p>No data available</p>";
-                return;
-            }
-            
-            let content = `<h3>${props.Country} (${props.ISO})</h3>`;
-            
-            props.Disaster_Info.forEach(d => {
-                let affectedRaw = d["People Affected Since 2000"] || "0";
-                let affected = parseInt(affectedRaw.replace(/,/g, ""), 10).toLocaleString();
-                content += `<p>Type: ${d.Type}</p>`;
-                content += `<p>Count: ${d.Count}</p>`;
-                content += `<p>Affected: ${affected}</p>`;
-                content += `<hr>`;
-            });
-
-            document.getElementById("country-data").innerHTML = content;
         }
 
         fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
