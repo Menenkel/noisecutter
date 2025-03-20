@@ -131,6 +131,7 @@
         fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
             .then(response => response.json())
             .then(data => {
+                emdatLayer.clearLayers();
                 emdatLayer.addData(data);
             })
             .catch(error => console.error("Error loading Disaster GeoJSON:", error));
@@ -138,6 +139,7 @@
         fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
             .then(response => response.json())
             .then(data => {
+                sudanLayer.clearLayers();
                 sudanLayer.addData(data);
             })
             .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
