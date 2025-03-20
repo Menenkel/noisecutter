@@ -79,6 +79,13 @@
                 layer.on("click", function () {
                     displayData(feature.properties);
                 });
+            },
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: 0,
+                    opacity: 0,
+                    fillOpacity: 0
+                });
             }
         }).addTo(map);
 
