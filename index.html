@@ -32,11 +32,11 @@
 
     <script>
         var map = L.map('map').setView([20, 0], 2);
-
+        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-
+        
         function searchCountry() {
             var country = document.getElementById('country-search').value.trim();
             if (!country) {
@@ -63,8 +63,8 @@
                 });
         }
 
-        // Load GeoJSON file and display HDI data
-        fetch("hdi.json")
+        // Load and display HDI data
+        fetch("https://your-username.github.io/geojson-data/hdi.json")
             .then(response => response.json())
             .then(geojsonData => {
                 L.geoJSON(geojsonData, {
@@ -83,7 +83,27 @@
                     }
                 }).addTo(map);
             })
-            .catch(error => console.error("Error loading GeoJSON:", error));
+            .catch(error => console.error("Error loading HDI GeoJSON:", error));
+
+        // Load and display Sudan HXL data
+        fetch("https://your-username.github.io/geojson-data/sudan_hxl.geojson")
+            .then(response => response.json())
+            .then(sudanData => {
+                L.geoJSON(sudanData, {
+                    style: function (feature) {
+                        return {
+                            color: "#ff7800",
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.5
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        layer.bindPopup(`<b>Sudan Data</b><br>${JSON.stringify(feature.properties, null, 2)}`);
+                    }
+                }).addTo(map);
+            })
+            .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
     </script>
 </body>
 </html>
