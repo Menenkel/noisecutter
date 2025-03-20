@@ -21,7 +21,7 @@
         #search-container {
             position: absolute;
             top: 10px;
-            right: 60px; /* Moved to the right */
+            right: 60px;
             background: white;
             padding: 10px;
             z-index: 1000;
@@ -71,7 +71,10 @@
             "Satellite View": satelliteMap
         };
 
-        L.control.layers(baseMaps).addTo(map);
+        var emdatLayer = L.layerGroup().addTo(map);
+        var sudanLayer = L.layerGroup();
+
+        L.control.layers(baseMaps, { "EMDAT Data": emdatLayer, "Sudan HXL": sudanLayer }).addTo(map);
 
         function searchCountry() {
             var country = document.getElementById('country-search').value.trim();
@@ -123,9 +126,20 @@
                             displayData(feature.properties);
                         });
                     }
-                }).addTo(map);
+                }).addTo(emdatLayer);
             })
             .catch(error => console.error("Error loading Disaster GeoJSON:", error));
+
+        fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function () {
+                        return { color: "#0000ff", weight: 1, fillOpacity: 0.4 };
+                    }
+                }).addTo(sudanLayer);
+            })
+            .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
     </script>
 </body>
 </html>
