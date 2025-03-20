@@ -64,7 +64,7 @@
         }
 
         // Load GeoJSON file and display HDI data
-        fetch("hdi_geojson.json")
+        fetch("hdi.json")
             .then(response => response.json())
             .then(geojsonData => {
                 L.geoJSON(geojsonData, {
