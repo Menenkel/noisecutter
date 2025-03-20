@@ -117,9 +117,15 @@
         }
 
         function displayData(props) {
-            let disasterDetails = JSON.parse(props.Disaster_Info)
-                .map(d => `<b>${d.Type}</b>: ${d.Count} events, ${d["People Affected Since 2000"]} affected`)
-                .join("<br>");
+            let disasterDetails;
+            try {
+                disasterDetails = JSON.parse(props.Disaster_Info)
+                    .map(d => `<b>${d.Type}</b>: ${d.Count} events, ${d["People Affected Since 2000"]} affected`)
+                    .join("<br>");
+            } catch (e) {
+                console.error("Error parsing Disaster_Info JSON:", e);
+                disasterDetails = "No data available";
+            }
             
             document.getElementById("data-panel").innerHTML = `
                 <h3>${props.Country}</h3>
