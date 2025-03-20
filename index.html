@@ -127,7 +127,7 @@
             let disasterDetails;
             try {
                 disasterDetails = JSON.parse(props.Disaster_Info)
-                    .map(d => `<b>${d.Type}</b>: ${d.Count} events, ${d["People Affected Since 2000"]} affected`)
+                    .map(d => `<b>${d.Type}</b>: ${d.Count} disasters, ${d["People Affected Since 2000"]} affected`)
                     .join("<br>");
             } catch (e) {
                 console.error("Error parsing Disaster_Info JSON:", e);
@@ -137,6 +137,7 @@
             document.getElementById("data-panel").innerHTML = `
                 <h3>${props.Country}</h3>
                 <p><b>Total Affected:</b> ${props.Total_Affected.toLocaleString()}</p>
+                <p><b>Disaster Breakdown:</b></p>
                 ${disasterDetails}
             `;
         }
