@@ -42,6 +42,11 @@
         var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CartoDB, OpenStreetMap contributors'
         });
+        
+        var satelliteMap = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps',
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        });
 
         var map = L.map('map', {
             center: [20, 0],
@@ -52,7 +57,8 @@
         var baseMaps = {
             "Standard OSM": osmStandard,
             "Humanitarian OSM": osmHot,
-            "Dark Map": darkMap
+            "Dark Map": darkMap,
+            "Satellite View": satelliteMap
         };
 
         L.control.layers(baseMaps).addTo(map);
