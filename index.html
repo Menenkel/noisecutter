@@ -64,9 +64,10 @@
         }
 
         // Load and display HDI data
-        fetch("https://menenkel.github.io/geojson-data/hdi.json")
+        fetch("https://menenkel.github.io/noisecutter/hdi.json")
             .then(response => response.json())
             .then(geojsonData => {
+                console.log("HDI Data Loaded:", geojsonData); // Debugging log
                 L.geoJSON(geojsonData, {
                     pointToLayer: function (feature, latlng) {
                         return L.circleMarker(latlng, {
@@ -86,9 +87,10 @@
             .catch(error => console.error("Error loading HDI GeoJSON:", error));
 
         // Load and display Sudan HXL data
-        fetch("https://menenkel.github.io/geojson-data/sudan_hxl.json")
+        fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
             .then(response => response.json())
             .then(sudanData => {
+                console.log("Sudan Data Loaded:", sudanData); // Debugging log
                 L.geoJSON(sudanData, {
                     style: function (feature) {
                         return {
