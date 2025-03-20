@@ -1,3 +1,107 @@
+Leaflet Risk Map
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
 <!DOCTYPE html>
 <html>
 <head>
@@ -31,12 +135,27 @@
     <div id="map"></div>
 
     <script>
-        var map = L.map('map').setView([20, 0], 2);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of Humanitarian OpenStreetMap Team'
-}).addTo(map);
-        
+        var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+
+        var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of Humanitarian OpenStreetMap Team'
+        });
+
+        var map = L.map('map', {
+            center: [20, 0],
+            zoom: 2,
+            layers: [osmHot] // Default layer
+        });
+
+        var baseMaps = {
+            "Standard OSM": osmStandard,
+            "Humanitarian OSM": osmHot
+        };
+
+        L.control.layers(baseMaps).addTo(map);
+
         function searchCountry() {
             var country = document.getElementById('country-search').value.trim();
             if (!country) {
@@ -63,29 +182,6 @@
                 });
         }
 
-        // Load and display HDI data
-        fetch("https://menenkel.github.io/noisecutter/hdi.json")
-            .then(response => response.json())
-            .then(geojsonData => {
-                console.log("HDI Data Loaded:", geojsonData); // Debugging log
-                L.geoJSON(geojsonData, {
-                    pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng, {
-                            radius: 8,
-                            fillColor: "#007bff",
-                            color: "#000",
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        });
-                    },
-                    onEachFeature: function (feature, layer) {
-                        layer.bindPopup(`<b>${feature.properties.country}</b><br>HDI 2021: ${feature.properties.hdi_2021}`);
-                    }
-                }).addTo(map);
-            })
-            .catch(error => console.error("Error loading HDI GeoJSON:", error));
-
         // Load and display Sudan HXL data
         fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
             .then(response => response.json())
@@ -109,3 +205,4 @@
     </script>
 </body>
 </html>
+
