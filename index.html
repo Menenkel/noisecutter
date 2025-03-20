@@ -9,26 +9,22 @@
     <script src="https://unpkg.com/leaflet-geosearch/dist/bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     <style>
-        body { margin: 0; font-family: Arial, sans-serif; }
-        #map { height: 100vh; }
-        #controls {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: white;
+        body { margin: 0; font-family: Arial, sans-serif; display: flex; }
+        #map { height: 100vh; width: 75%; }
+        #data-panel {
+            width: 25%;
             padding: 10px;
-            z-index: 1000;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            overflow-y: auto;
+            background: white;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
         }
     </style>
 </head>
 <body>
-    <div id="controls">
-        <input type="text" id="country-search" placeholder="Enter country name">
-        <button onclick="searchCountry()">Search</button>
-    </div>
     <div id="map"></div>
+    <div id="data-panel">
+        <h3>Click a country to see disaster stats</h3>
+    </div>
 
     <script>
         var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -63,52 +59,30 @@
 
         L.control.layers(baseMaps).addTo(map);
 
-        function searchCountry() {
-            var country = document.getElementById('country-search').value.trim();
-            if (!country) {
-                alert("Please enter a country name.");
-                return;
-            }
-            var encodedCountry = encodeURIComponent(country);
-            fetch(`https://nominatim.openstreetmap.org/search?country=${encodedCountry}&format=json&limit=1`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        var boundingBox = data[0].boundingbox.map(Number);
-                        var southWest = L.latLng(boundingBox[0], boundingBox[2]);
-                        var northEast = L.latLng(boundingBox[1], boundingBox[3]);
-                        var bounds = L.latLngBounds(southWest, northEast);
-                        map.fitBounds(bounds);
-                    } else {
-                        alert("Country not found. Try a different name.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching location:", error);
-                    alert("Failed to retrieve location. Try again later.");
-                });
+        function displayData(props) {
+            let disasterDetails = JSON.parse(props.Disaster_Info)
+                .map(d => `<b>${d.Type}</b>: ${d.Count} events, ${d["People Affected Since 2000"]} affected`)
+                .join("<br>");
+            
+            document.getElementById("data-panel").innerHTML = `
+                <h3>${props.Country}</h3>
+                <p><b>Total Affected:</b> ${props.Total_Affected.toLocaleString()}</p>
+                ${disasterDetails}
+            `;
         }
 
-        // Load and display Sudan HXL data
-        fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
+        fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
             .then(response => response.json())
-            .then(sudanData => {
-                console.log("Sudan Data Loaded:", sudanData); // Debugging log
-                L.geoJSON(sudanData, {
-                    style: function (feature) {
-                        return {
-                            color: "#ff7800",
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.5
-                        };
-                    },
+            .then(data => {
+                L.geoJSON(data, {
                     onEachFeature: function (feature, layer) {
-                        layer.bindPopup(`<b>Sudan Data</b><br>${JSON.stringify(feature.properties, null, 2)}`);
+                        layer.on("click", function () {
+                            displayData(feature.properties);
+                        });
                     }
                 }).addTo(map);
             })
-            .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
+            .catch(error => console.error("Error loading Disaster GeoJSON:", error));
     </script>
 </body>
 </html>
