@@ -120,6 +120,11 @@
         }
 
         function displayData(props) {
+            if (!props || !props.Disaster_Info) {
+                document.getElementById("country-data").innerHTML = "<p>No data available</p>";
+                return;
+            }
+            
             let content = `<h3>${props.Country} (${props.ISO})</h3>`;
             props.Disaster_Info.forEach(d => {
                 content += `<p>${d.Type}: ${d.Count} events, ${d.Affected.toLocaleString()} affected</p>`;
