@@ -64,7 +64,7 @@
         }
 
         // Load and display HDI data
-        fetch("https://your-username.github.io/geojson-data/hdi.json")
+        fetch("https://menenkel.github.io/geojson-data/hdi.json")
             .then(response => response.json())
             .then(geojsonData => {
                 L.geoJSON(geojsonData, {
@@ -86,7 +86,7 @@
             .catch(error => console.error("Error loading HDI GeoJSON:", error));
 
         // Load and display Sudan HXL data
-        fetch("https://your-username.github.io/geojson-data/sudan_hxl.geojson")
+        fetch("https://menenkel.github.io/geojson-data/sudan_hxl.geojson")
             .then(response => response.json())
             .then(sudanData => {
                 L.geoJSON(sudanData, {
