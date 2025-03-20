@@ -8,7 +8,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-geosearch/dist/bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { margin: 0; font-family: Arial, sans-serif; display: flex; }
         #map { height: 100vh; width: 75%; }
@@ -20,13 +19,6 @@
             box-shadow: -2px 0 5px rgba(0,0,0,0.3);
             font-size: 14px;
             line-height: 1.5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #chart-container {
-            width: 100%;
-            height: 400px;
         }
         #search-container {
             position: absolute;
@@ -43,8 +35,8 @@
 <body>
     <div id="map"></div>
     <div id="data-panel">
-        <h3>Reported Disasters</h3>
-        <canvas id="disasterChart"></canvas>
+        <h3>Click a country to see disaster stats</h3>
+        <div id="country-data"></div>
     </div>
     <div id="search-container">
         <input type="text" id="country-search" placeholder="Search for a country or click on the map">
@@ -129,36 +121,39 @@
 
         function displayData(props) {
             if (!props || !props.Disaster_Info || !Array.isArray(props.Disaster_Info)) {
-                document.getElementById("disasterChart").style.display = "none";
+                document.getElementById("country-data").innerHTML = "<p>No data available</p>";
                 return;
             }
             
-            document.getElementById("disasterChart").style.display = "block";
+            let content = `<h3>${props.Country} (${props.ISO})</h3>`;
             
-            let labels = props.Disaster_Info.map(d => d.Type);
-            let data = props.Disaster_Info.map(d => d.Count);
-
-            let ctx = document.getElementById("disasterChart").getContext("2d");
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Reported Disasters',
-                        data: data,
-                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
+            props.Disaster_Info.forEach(d => {
+                let affectedRaw = d["People Affected Since 2000"] || "0";
+                let affected = parseInt(affectedRaw.replace(/,/g, ""), 10).toLocaleString();
+                content += `<p>Type: ${d.Type}</p>`;
+                content += `<p>Count: ${d.Count}</p>`;
+                content += `<p>Affected: ${affected}</p>`;
+                content += `<hr>`;
             });
+
+            document.getElementById("country-data").innerHTML = content;
         }
+
+        fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
+            .then(response => response.json())
+            .then(data => {
+                emdatLayer.clearLayers();
+                emdatLayer.addData(data);
+            })
+            .catch(error => console.error("Error loading Disaster GeoJSON:", error));
+
+        fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
+            .then(response => response.json())
+            .then(data => {
+                sudanLayer.clearLayers();
+                sudanLayer.addData(data);
+            })
+            .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
     </script>
 </body>
 </html>
