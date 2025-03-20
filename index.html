@@ -125,7 +125,10 @@
                 return;
             }
             
+            let totalAffected = (typeof props.Total_Affected === 'number') ? props.Total_Affected.toLocaleString() : "0";
             let content = `<h3>${props.Country} (${props.ISO})</h3>`;
+            content += `<p><b>Total Affected:</b> ${totalAffected}</p>`;
+            
             props.Disaster_Info.forEach(d => {
                 let affected = (typeof d.Affected === 'number') ? d.Affected.toLocaleString() : "0";
                 content += `<p>Type: ${d.Type}</p>`;
@@ -133,6 +136,7 @@
                 content += `<p>Affected: ${affected}</p>`;
                 content += `<hr>`;
             });
+
             document.getElementById("country-data").innerHTML = content;
         }
 
