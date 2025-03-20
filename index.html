@@ -30,10 +30,6 @@
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        .disaster-type {
-            font-weight: bold;
-            margin-top: 5px;
-        }
     </style>
 </head>
 <body>
@@ -125,13 +121,9 @@
 
         function displayData(props) {
             let content = `<h3>${props.Country} (${props.ISO})</h3>`;
-            content += `<p><b>Total People Affected Since 2000:</b> ${props.Total_Affected.toLocaleString()}</p>`;
-            content += `<h4>Disaster Breakdown:</h4>`;
-            content += `<ul>`;
             props.Disaster_Info.forEach(d => {
-                content += `<li class="disaster-type">${d.Type}: ${d.Count} events, ${d.Affected.toLocaleString()} affected</li>`;
+                content += `<p>${d.Type}: ${d.Count} events, ${d.Affected.toLocaleString()} affected</p>`;
             });
-            content += `</ul>`;
             document.getElementById("country-data").innerHTML = content;
         }
 
