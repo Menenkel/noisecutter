@@ -118,7 +118,11 @@
         }
 
         function displayData(feature) {
-            document.getElementById("country-data").textContent = JSON.stringify(feature, null, 2);
+            if (feature && feature.properties) {
+                document.getElementById("country-data").textContent = JSON.stringify(feature, null, 2);
+            } else {
+                document.getElementById("country-data").textContent = "No data available";
+            }
         }
 
         fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
