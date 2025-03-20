@@ -127,8 +127,11 @@
             
             let content = `<h3>${props.Country} (${props.ISO})</h3>`;
             props.Disaster_Info.forEach(d => {
-                let affected = d.Affected ? d.Affected.toLocaleString() : "0";
-                content += `<p>${d.Type}: ${d.Count} events, ${affected} affected</p>`;
+                let affected = (typeof d.Affected === 'number') ? d.Affected.toLocaleString() : "0";
+                content += `<p>Type: ${d.Type}</p>`;
+                content += `<p>Count: ${d.Count}</p>`;
+                content += `<p>Affected: ${affected}</p>`;
+                content += `<hr>`;
             });
             document.getElementById("country-data").innerHTML = content;
         }
