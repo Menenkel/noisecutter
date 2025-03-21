@@ -40,12 +40,11 @@
         <div id="country-data"></div>
     </div>
     <div id="search-container">
-        <input type="text" id="country-search" placeholder="Search for a country" onkeyup="if(event.key==='Enter') searchCountry()">
+        <input type="text" id="country-search" placeholder="Search for a country or click on the map" onkeyup="if(event.key==='Enter') searchCountry()">
         <button onclick="searchCountry()">Search</button>
     </div>
 
     <script>
-        // Base map layers
         var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         });
@@ -66,7 +65,7 @@
         var map = L.map('map', {
             center: [20, 0],
             zoom: 2,
-            layers: [osmHot]
+            layers: [osmHot] // Default layer
         });
 
         var baseMaps = {
@@ -76,10 +75,10 @@
             "Satellite View": satelliteMap
         };
 
-        // Unified display function: now also supports country boundaries (with props.name)
+        // Unified display function to handle both global and hospital data
         function displayData(props) {
             let content = "";
-            // Global disaster data branch
+            // Check for global EMDAT disaster data
             if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
                 content += `<h3>${props.Country} (${props.ISO})</h3>`;
                 props.Disaster_Info.forEach(d => {
@@ -91,7 +90,7 @@
                     content += `<hr>`;
                 });
             }
-            // Hospital data branch (Sudan health data)
+            // Check for hospital data (Sudan health data)
             else if (props["#loc+amenity"] || props["#meta+healthcare"] || props["#loc +name"]) {
                 if (props["#loc +name"]) {
                     content += `<h3>${props["#loc +name"]}</h3>`;
@@ -104,37 +103,27 @@
                 if (props["#meta+healthcare"]) {
                     content += `<p>Healthcare: ${props["#meta+healthcare"]}</p>`;
                 }
-            }
-            // Country boundaries branch (using props.name)
-            else if (props.name) {
-                content += `<h3>${props.name}</h3>`;
             } else {
                 content = "<p>No data available</p>";
             }
             document.getElementById("country-data").innerHTML = content;
         }
 
-        // EMDAT disaster data layer (assuming point features; adjust pointToLayer if needed)
+        // Global disaster data layer
         var emdatLayer = L.geoJSON(null, {
-            pointToLayer: function(feature, latlng) {
-                return L.circleMarker(latlng, {
-                    radius: 10,
-                    fillColor: "#ff7800",
-                    color: "#ff7800",
-                    weight: 1,
-                    opacity: 1,
-                    fillOpacity: 0.4
-                });
+            style: function () {
+                return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
             },
-            onEachFeature: function(feature, layer) {
-                layer.on("click", function() {
+            onEachFeature: function (feature, layer) {
+                layer.on("click", function () {
                     displayData(feature.properties);
                 });
             }
         }).addTo(map);
 
-        // Custom hospital icon for Sudan health data
+        // Custom hospital icon suitable for health infrastructure
         var healthIcon = L.icon({
+            // Using an icon from icons8 known to work reliably
             iconUrl: 'https://img.icons8.com/fluency/48/000000/hospital-2.png',
             iconSize: [32, 32],
             iconAnchor: [16, 32],
@@ -153,27 +142,8 @@
             }
         }).addTo(map);
 
-        // New Countries layer (using a publicly available GeoJSON file for country boundaries)
-        var countriesLayer = L.geoJSON(null, {
-            style: function(feature) {
-                return { color: "#3388ff", weight: 1, fillOpacity: 0.1 };
-            },
-            onEachFeature: function(feature, layer) {
-                layer.on("click", function() {
-                    displayData(feature.properties);
-                });
-            }
-        }).addTo(map);
+        L.control.layers(baseMaps, { "EMDAT Data": emdatLayer, "Sudan HXL": sudanLayer }).addTo(map);
 
-        var overlays = {
-            "EMDAT Data": emdatLayer,
-            "Sudan HXL": sudanLayer,
-            "Countries": countriesLayer
-        };
-
-        L.control.layers(baseMaps, overlays).addTo(map);
-
-        // Country search function using Nominatim
         function searchCountry() {
             var country = document.getElementById('country-search').value.trim();
             if (!country) {
@@ -200,7 +170,6 @@
                 });
         }
 
-        // Load external GeoJSON data for EMDAT and Sudan health
         fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
             .then(response => response.json())
             .then(data => {
@@ -216,15 +185,6 @@
                 sudanLayer.addData(data);
             })
             .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
-
-        // Load country boundaries from a public GeoJSON source
-        fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
-            .then(response => response.json())
-            .then(data => {
-                countriesLayer.clearLayers();
-                countriesLayer.addData(data);
-            })
-            .catch(error => console.error("Error loading countries GeoJSON:", error));
     </script>
 </body>
 </html>
