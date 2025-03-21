@@ -24,11 +24,13 @@
       background: white;
       box-shadow: -2px 0 5px rgba(0,0,0,0.3);
     }
+    /* Chart container style with vertical scroll if needed */
     #chartContainer {
       max-height: 800px;
       overflow-y: auto;
       width: 100%;
     }
+    /* Position the search container on the left below the zoom controls */
     #search-container {
       position: absolute;
       top: 70px;
@@ -48,26 +50,16 @@
     <div id="country-data"></div>
   </div>
   <div id="search-container">
-    <input type="text" id="country-search" placeholder="Search for a location" 
-           onkeyup="if(event.key==='Enter') searchLocation()">
+    <input type="text" id="country-search" placeholder="Search for a location" onkeyup="if(event.key==='Enter') searchLocation()">
     <button onclick="searchLocation()">Search</button>
   </div>
 
   <script>
     // Base map layers
-    var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    });
-    var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of HOT'
-    });
-    var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; CartoDB, OpenStreetMap contributors'
-    });
-    var satelliteMap = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-      attribution: '&copy; Google Maps',
-      subdomains: ['mt0','mt1','mt2','mt3']
-    });
+    var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+    var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of HOT' });
+    var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB, OpenStreetMap contributors' });
+    var satelliteMap = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { attribution: '&copy; Google Maps', subdomains: ['mt0','mt1','mt2','mt3'] });
     
     var map = L.map('map', {
       center: [20, 0],
@@ -82,7 +74,7 @@
       "Satellite View": satelliteMap
     };
 
-    // Unified display function with two charts
+    // Unified display function with two charts (unchanged)
     function displayData(props) {
       var container = document.getElementById("country-data");
       container.innerHTML = ""; // Clear previous content
@@ -256,7 +248,7 @@
     };
     var layerControl = L.control.layers(baseMaps, overlayLayers).addTo(map);
 
-    // Population layer: load GeoTIFF and add as a raster layer with dynamic colorization
+    // Population layer: load GeoTIFF and add as a raster layer with dynamic dot colorization.
     fetch("https://menenkel.github.io/noisecutter/sdn_ppp_2020_UNadj_constrained.tif")
       .then(response => response.arrayBuffer())
       .then(arrayBuffer => {
@@ -264,19 +256,26 @@
           console.log("Population GeoTIFF - min:", georaster.min, "max:", georaster.max);
           var minValue = (typeof georaster.min === "number") ? georaster.min : 0;
           var maxValue = (typeof georaster.max === "number") ? georaster.max : 100;
-          // Use a lower resolution to aggregate the raster into larger cells
+          // Set a lower resolution so cells are larger (i.e. appear as dots)
           var popLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: 0.7,
-            resolution: 256,
+            resolution: 64,
             pixelValuesToColorFn: function(pixelValues) {
               var value = pixelValues[0];
-              if (value === georaster.noDataValue || value === 0) return "transparent";
+              if (value === georaster.noDataValue) return "transparent";
               // Normalize the value between minValue and maxValue
               var normalized = (value - minValue) / (maxValue - minValue);
-              // Map normalized value to lightness from 20% (darker) to 90% (lighter)
-              var lightness = 20 + normalized * 70;
-              return "hsl(0, 0%, " + lightness + "%)";
+              // If below 10% of the range, render as dark background (black)
+              if (normalized < 0.1) {
+                return "#000000";
+              } else {
+                // For higher densities, calculate an alpha for white dots
+                var dotAlpha = (normalized - 0.1) / 0.9; // ranges from 0 to 1
+                // Scale alpha to be between 0.3 and 1 for visible dots
+                dotAlpha = 0.3 + 0.7 * dotAlpha;
+                return "rgba(255, 255, 255, " + dotAlpha + ")";
+              }
             }
           });
           popLayer.addTo(map);
