@@ -84,26 +84,20 @@
       "Satellite View": satelliteMap
     };
 
-    // Build lookup table using ISO codes from disaster data
-    var emdatDataByISO = {};
-
     // Unified display function with two charts
     function displayData(props) {
       var container = document.getElementById("country-data");
       container.innerHTML = ""; // Clear previous content
 
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
-        // Create container for both charts
         var chartContainer = document.createElement("div");
         chartContainer.id = "chartContainer";
 
-        // Create first canvas for disaster count chart
         var canvas1 = document.createElement("canvas");
         canvas1.id = "chartCanvas1";
         canvas1.style.height = "400px"; 
         canvas1.style.width = "100%";
 
-        // Create second canvas for people affected chart
         var canvas2 = document.createElement("canvas");
         canvas2.id = "chartCanvas2";
         canvas2.style.height = "400px"; 
@@ -113,7 +107,6 @@
         chartContainer.appendChild(canvas2);
         container.appendChild(chartContainer);
 
-        // Aggregate data arrays
         var labels = [];
         var counts = [];
         var peopleAffected = [];
@@ -123,7 +116,6 @@
           peopleAffected.push(parseInt(d["People Affected Since 2000"].replace(/,/g, ""), 10));
         });
 
-        // Common x-axis configuration for both charts
         var xAxisConfig = {
           ticks: {
             autoSkip: false,
@@ -134,7 +126,6 @@
           offset: false
         };
 
-        // First chart: Disaster Count since 2000
         var ctx1 = canvas1.getContext('2d');
         new Chart(ctx1, {
           type: 'bar',
@@ -163,7 +154,6 @@
           }
         });
 
-        // Second chart: Total people affected since 2000
         var ctx2 = canvas2.getContext('2d');
         new Chart(ctx2, {
           type: 'bar',
@@ -192,7 +182,6 @@
           }
         });
       } 
-      // Hospital data branch (for Sudan health data)
       else if (props["#loc+amenity"] || props["#meta+healthcare"] || props["#loc +name"]) {
         var title = props["#loc +name"] || "Hospital";
         container.innerHTML = "<h3>" + title + "</h3>" +
@@ -210,7 +199,9 @@
       }
     }
 
-    // EMDAT disaster data layer: add all features but render point features invisibly
+    // Build lookup table using ISO codes from disaster data
+    var emdatDataByISO = {};
+
     var emdatLayer = L.geoJSON(null, {
       pointToLayer: function(feature, latlng) {
         return L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 });
@@ -222,7 +213,6 @@
       }
     }).addTo(map);
 
-    // Hospital data (Sudan health) layer with custom hospital icon
     var healthIcon = L.icon({
       iconUrl: 'https://img.icons8.com/fluency/48/000000/hospital-2.png',
       iconSize: [32, 32],
@@ -241,7 +231,6 @@
       }
     }).addTo(map);
 
-    // Countries boundaries layer (polygons only, no markers)
     var countriesLayer = L.geoJSON(null, {
       filter: function(feature) {
         return feature.geometry.type !== "Point";
@@ -262,7 +251,6 @@
       }
     }).addTo(map);
 
-    // Create overlay layers object and layer control
     var overlayLayers = {
       "EMDAT Data": emdatLayer,
       "Sudan HXL": sudanLayer,
@@ -270,23 +258,25 @@
     };
     var layerControl = L.control.layers(baseMaps, overlayLayers).addTo(map);
 
-    // Population layer: load GeoTIFF file and add as a raster layer
+    // Population layer: load GeoTIFF and add as a raster layer with dynamic colorization.
     fetch("https://menenkel.github.io/noisecutter/sdn_ppp_2020_UNadj_constrained.tif")
       .then(response => response.arrayBuffer())
       .then(arrayBuffer => {
         parseGeoraster(arrayBuffer).then(georaster => {
+          // Capture the min and max values from the georaster
+          var minValue = georaster.min;
+          var maxValue = georaster.max;
           var popLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: 0.7,
-            // Define a simple function to map pixel values to colors.
             pixelValuesToColorFn: function(pixelValues) {
               var value = pixelValues[0];
-              if (value === 0) return "transparent";
-              // Example thresholds; adjust these values based on your dataset's range.
-              if (value < 10) return "#e0f3db";
-              else if (value < 100) return "#a8ddb5";
-              else if (value < 1000) return "#43a2ca";
-              else return "#0868ac";
+              if (value === georaster.noDataValue || value === 0) return "transparent";
+              // Normalize value between min and max
+              var normalized = (value - minValue) / (maxValue - minValue);
+              // Map normalized value to lightness between 20% (darker) and 90% (lighter)
+              var lightness = 20 + normalized * 70;
+              return "hsl(0, 0%, " + lightness + "%)";
             }
           });
           popLayer.addTo(map);
@@ -295,7 +285,6 @@
         });
       });
 
-    // Search function: search for any location using Nominatim
     function searchLocation() {
       var query = document.getElementById("country-search").value.trim();
       if (!query) {
@@ -323,7 +312,6 @@
     }
     window.searchLocation = searchLocation;
 
-    // Load EMDAT disaster data and build lookup table by ISO codes
     fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
       .then(response => response.json())
       .then(data => {
@@ -338,7 +326,6 @@
       })
       .catch(error => console.error("Error loading Disaster GeoJSON:", error));
 
-    // Load Sudan health data
     fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
       .then(response => response.json())
       .then(data => {
@@ -347,7 +334,6 @@
       })
       .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
 
-    // Load country boundaries from a public source
     fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
       .then(response => response.json())
       .then(data => {
