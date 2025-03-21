@@ -1,190 +1,223 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Risk Management Map</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-geosearch/dist/bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
-    <style>
-        body { margin: 0; font-family: Arial, sans-serif; display: flex; }
-        #map { height: 100vh; width: 75%; }
-        #data-panel {
-            width: 25%;
-            padding: 10px;
-            overflow-y: auto;
-            background: white;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.3);
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        /* Position the search container on the left below the zoom controls */
-        #search-container {
-            position: absolute;
-            top: 70px;
-            left: 10px;
-            background: white;
-            padding: 10px;
-            z-index: 1000;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-    </style>
+  <title>Risk Management Map</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-geosearch/dist/bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; display: flex; }
+    #map { height: 100vh; width: 75%; }
+    #data-panel {
+      width: 25%;
+      padding: 10px;
+      overflow-y: auto;
+      background: white;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    /* Position the search container on the left below the zoom controls */
+    #search-container {
+      position: absolute;
+      top: 70px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      z-index: 1000;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="data-panel">
-        <h3>Click a country or hospital to see details</h3>
-        <div id="country-data"></div>
-    </div>
-    <div id="search-container">
-        <input type="text" id="country-search" placeholder="Search for a country or click on the map" onkeyup="if(event.key==='Enter') searchCountry()">
-        <button onclick="searchCountry()">Search</button>
-    </div>
+  <div id="map"></div>
+  <div id="data-panel">
+    <h3>Click a country or hospital to see details</h3>
+    <div id="country-data"></div>
+  </div>
+  <div id="search-container">
+    <input type="text" id="country-search" placeholder="Search for a country" onkeyup="if(event.key==='Enter') searchCountry()">
+    <button onclick="searchCountry()">Search</button>
+  </div>
 
-    <script>
-        var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+  <script>
+    // Base map layers
+    var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+    var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of Humanitarian OpenStreetMap Team'
+    });
+    var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; CartoDB, OpenStreetMap contributors'
+    });
+    var satelliteMap = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+      attribution: '&copy; Google Maps',
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    });
+    var map = L.map('map', {
+      center: [20, 0],
+      zoom: 2,
+      layers: [osmHot]
+    });
+    var baseMaps = {
+      "Standard OSM": osmStandard,
+      "Humanitarian OSM": osmHot,
+      "Dark Map": darkMap,
+      "Satellite View": satelliteMap
+    };
+
+    // Global display function: shows detailed disaster info if available,
+    // or falls back to showing the country name.
+    function displayData(props) {
+      let content = "";
+      if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
+        content += `<h3>${props.Country} (${props.ISO})</h3>`;
+        props.Disaster_Info.forEach(d => {
+          let affectedRaw = d["People Affected Since 2000"] || "0";
+          let affected = parseInt(affectedRaw.replace(/,/g, ""), 10).toLocaleString();
+          content += `<p>Type: ${d.Type}</p>`;
+          content += `<p>Count: ${d.Count}</p>`;
+          content += `<p>Affected: ${affected}</p>`;
+          content += `<hr>`;
         });
+      } else if (props.Country) {
+        content += `<h3>${props.Country}</h3>`;
+        content += `<p>No detailed disaster data available.</p>`;
+      } else if (props.name) {
+        content += `<h3>${props.name}</h3>`;
+      } else {
+        content = "<p>No data available</p>";
+      }
+      document.getElementById("country-data").innerHTML = content;
+    }
 
-        var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of Humanitarian OpenStreetMap Team'
+    // Global variable for disaster data lookup by country (in lower case)
+    var emdatDataByCountry = {};
+
+    // EMDAT disaster data layer (could be hidden from control if you prefer)
+    var emdatLayer = L.geoJSON(null, {
+      style: function(feature) {
+        return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
+      },
+      onEachFeature: function(feature, layer) {
+        // Optionally, if you want to keep click functionality on markers:
+        layer.on("click", function() {
+          displayData(feature.properties);
         });
-        
-        var darkMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CartoDB, OpenStreetMap contributors'
+      }
+    }).addTo(map);
+
+    // Hospital data (Sudan health) with custom hospital icon
+    var healthIcon = L.icon({
+      iconUrl: 'https://img.icons8.com/fluency/48/000000/hospital-2.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+    var sudanLayer = L.geoJSON(null, {
+      pointToLayer: function(feature, latlng) {
+        return L.marker(latlng, { icon: healthIcon });
+      },
+      onEachFeature: function(feature, layer) {
+        layer.on("click", function() {
+          displayData(feature.properties);
         });
-        
-        var satelliteMap = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            attribution: '&copy; Google Maps',
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+      }
+    }).addTo(map);
+
+    // Countries boundaries layer (no markers; polygons only)
+    var countriesLayer = L.geoJSON(null, {
+      style: function(feature) {
+        return { color: "#3388ff", weight: 1, fillOpacity: 0.1 };
+      },
+      onEachFeature: function(feature, layer) {
+        layer.on("click", function() {
+          // Use the country name from the boundaries feature to lookup disaster data.
+          var countryName = feature.properties.name;
+          // Use lower-case for matching
+          var data = emdatDataByCountry[countryName.toLowerCase()];
+          if (data) {
+            displayData(data);
+          } else {
+            // Fallback: show country name only.
+            displayData({ Country: countryName });
+          }
         });
+      }
+    }).addTo(map);
 
-        var map = L.map('map', {
-            center: [20, 0],
-            zoom: 2,
-            layers: [osmHot] // Default layer
+    // Add all overlays to the layer control
+    L.control.layers(baseMaps, {
+      "EMDAT Data": emdatLayer,
+      "Sudan HXL": sudanLayer,
+      "Countries": countriesLayer
+    }).addTo(map);
+
+    // Country search using Nominatim
+    function searchCountry() {
+      var country = document.getElementById('country-search').value.trim();
+      if (!country) {
+        alert("Please enter a country name.");
+        return;
+      }
+      var encodedCountry = encodeURIComponent(country);
+      fetch(`https://nominatim.openstreetmap.org/search?country=${encodedCountry}&format=json&limit=1`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.length > 0) {
+            var boundingBox = data[0].boundingbox.map(Number);
+            var southWest = L.latLng(boundingBox[0], boundingBox[2]);
+            var northEast = L.latLng(boundingBox[1], boundingBox[3]);
+            var bounds = L.latLngBounds(southWest, northEast);
+            map.fitBounds(bounds);
+          } else {
+            alert("Country not found. Try a different name.");
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching location:", error);
+          alert("Failed to retrieve location. Try again later.");
         });
+    }
 
-        var baseMaps = {
-            "Standard OSM": osmStandard,
-            "Humanitarian OSM": osmHot,
-            "Dark Map": darkMap,
-            "Satellite View": satelliteMap
-        };
-
-        // Unified display function to handle both global and hospital data
-        function displayData(props) {
-            let content = "";
-            // Check for global EMDAT disaster data
-            if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
-                content += `<h3>${props.Country} (${props.ISO})</h3>`;
-                props.Disaster_Info.forEach(d => {
-                    let affectedRaw = d["People Affected Since 2000"] || "0";
-                    let affected = parseInt(affectedRaw.replace(/,/g, ""), 10).toLocaleString();
-                    content += `<p>Type: ${d.Type}</p>`;
-                    content += `<p>Count: ${d.Count}</p>`;
-                    content += `<p>Affected: ${affected}</p>`;
-                    content += `<hr>`;
-                });
-            }
-            // Check for hospital data (Sudan health data)
-            else if (props["#loc+amenity"] || props["#meta+healthcare"] || props["#loc +name"]) {
-                if (props["#loc +name"]) {
-                    content += `<h3>${props["#loc +name"]}</h3>`;
-                } else {
-                    content += `<h3>Hospital</h3>`;
-                }
-                if (props["#loc+amenity"]) {
-                    content += `<p>Amenity: ${props["#loc+amenity"]}</p>`;
-                }
-                if (props["#meta+healthcare"]) {
-                    content += `<p>Healthcare: ${props["#meta+healthcare"]}</p>`;
-                }
-            } else {
-                content = "<p>No data available</p>";
-            }
-            document.getElementById("country-data").innerHTML = content;
-        }
-
-        // Global disaster data layer
-        var emdatLayer = L.geoJSON(null, {
-            style: function () {
-                return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
-            },
-            onEachFeature: function (feature, layer) {
-                layer.on("click", function () {
-                    displayData(feature.properties);
-                });
-            }
-        }).addTo(map);
-
-        // Custom hospital icon suitable for health infrastructure
-        var healthIcon = L.icon({
-            // Using an icon from icons8 known to work reliably
-            iconUrl: 'https://img.icons8.com/fluency/48/000000/hospital-2.png',
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-            popupAnchor: [0, -32]
+    // Load EMDAT disaster data and build lookup table
+    fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
+      .then(response => response.json())
+      .then(data => {
+        emdatLayer.clearLayers();
+        emdatLayer.addData(data);
+        // Build lookup by country name (toLowerCase for matching)
+        data.features.forEach(function(feature) {
+          var country = feature.properties.Country;
+          if (country) {
+            emdatDataByCountry[country.toLowerCase()] = feature.properties;
+          }
         });
+      })
+      .catch(error => console.error("Error loading Disaster GeoJSON:", error));
 
-        // Sudan health data layer with custom icon
-        var sudanLayer = L.geoJSON(null, {
-            pointToLayer: function(feature, latlng) {
-                return L.marker(latlng, { icon: healthIcon });
-            },
-            onEachFeature: function(feature, layer) {
-                layer.on("click", function() {
-                    displayData(feature.properties);
-                });
-            }
-        }).addTo(map);
+    // Load Sudan health data
+    fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
+      .then(response => response.json())
+      .then(data => {
+        sudanLayer.clearLayers();
+        sudanLayer.addData(data);
+      })
+      .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
 
-        L.control.layers(baseMaps, { "EMDAT Data": emdatLayer, "Sudan HXL": sudanLayer }).addTo(map);
-
-        function searchCountry() {
-            var country = document.getElementById('country-search').value.trim();
-            if (!country) {
-                alert("Please enter a country name.");
-                return;
-            }
-            var encodedCountry = encodeURIComponent(country);
-            fetch(`https://nominatim.openstreetmap.org/search?country=${encodedCountry}&format=json&limit=1`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        var boundingBox = data[0].boundingbox.map(Number);
-                        var southWest = L.latLng(boundingBox[0], boundingBox[2]);
-                        var northEast = L.latLng(boundingBox[1], boundingBox[3]);
-                        var bounds = L.latLngBounds(southWest, northEast);
-                        map.fitBounds(bounds);
-                    } else {
-                        alert("Country not found. Try a different name.");
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching location:", error);
-                    alert("Failed to retrieve location. Try again later.");
-                });
-        }
-
-        fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
-            .then(response => response.json())
-            .then(data => {
-                emdatLayer.clearLayers();
-                emdatLayer.addData(data);
-            })
-            .catch(error => console.error("Error loading Disaster GeoJSON:", error));
-
-        fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
-            .then(response => response.json())
-            .then(data => {
-                sudanLayer.clearLayers();
-                sudanLayer.addData(data);
-            })
-            .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
-    </script>
+    // Load country boundaries (from a public source)
+    fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
+      .then(response => response.json())
+      .then(data => {
+        countriesLayer.clearLayers();
+        countriesLayer.addData(data);
+      })
+      .catch(error => console.error("Error loading countries GeoJSON:", error));
+  </script>
 </body>
 </html>
