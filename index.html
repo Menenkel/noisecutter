@@ -75,7 +75,7 @@
       "Satellite View": satelliteMap
     };
 
-    // Unified display function using Chart.js for disaster data visualization
+    // Unified display function with Chart.js and rotated x-axis labels
     function displayData(props) {
       var container = document.getElementById("country-data");
       container.innerHTML = ""; // Clear previous content
@@ -109,6 +109,12 @@
           },
           options: {
             scales: {
+              x: {
+                ticks: {
+                  maxRotation: 90,
+                  minRotation: 90
+                }
+              },
               y: {
                 beginAtZero: true
               }
