@@ -11,6 +11,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- GeoRaster libraries for GeoTIFF rendering -->
+  <script src="https://unpkg.com/georaster"></script>
+  <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
   <style>
     body { margin: 0; font-family: Arial, sans-serif; display: flex; }
     #map { height: 100vh; width: 70%; }
@@ -81,6 +84,9 @@
       "Satellite View": satelliteMap
     };
 
+    // Build lookup table using ISO codes from disaster data
+    var emdatDataByISO = {};
+
     // Unified display function with two charts
     function displayData(props) {
       var container = document.getElementById("country-data");
@@ -117,7 +123,7 @@
           peopleAffected.push(parseInt(d["People Affected Since 2000"].replace(/,/g, ""), 10));
         });
 
-        // Common x-axis configuration
+        // Common x-axis configuration for both charts
         var xAxisConfig = {
           ticks: {
             autoSkip: false,
@@ -146,9 +152,7 @@
             maintainAspectRatio: false,
             scales: {
               x: xAxisConfig,
-              y: {
-                beginAtZero: true
-              }
+              y: { beginAtZero: true }
             },
             plugins: {
               title: {
@@ -177,9 +181,7 @@
             maintainAspectRatio: false,
             scales: {
               x: xAxisConfig,
-              y: {
-                beginAtZero: true
-              }
+              y: { beginAtZero: true }
             },
             plugins: {
               title: {
@@ -207,9 +209,6 @@
         container.innerHTML = "<p>No data available</p>";
       }
     }
-
-    // Build lookup table using ISO codes from disaster data
-    var emdatDataByISO = {};
 
     // EMDAT disaster data layer: add all features but render point features invisibly
     var emdatLayer = L.geoJSON(null, {
@@ -263,12 +262,38 @@
       }
     }).addTo(map);
 
-    // Add overlay layers to layer control
-    L.control.layers(baseMaps, {
+    // Create overlay layers object and layer control
+    var overlayLayers = {
       "EMDAT Data": emdatLayer,
       "Sudan HXL": sudanLayer,
       "Countries": countriesLayer
-    }).addTo(map);
+    };
+    var layerControl = L.control.layers(baseMaps, overlayLayers).addTo(map);
+
+    // Population layer: load GeoTIFF file and add as a raster layer
+    fetch("https://menenkel.github.io/noisecutter/sdn_ppp_2020_UNadj_constrained.tif")
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => {
+        parseGeoraster(arrayBuffer).then(georaster => {
+          var popLayer = new GeoRasterLayer({
+            georaster: georaster,
+            opacity: 0.7,
+            // Define a simple function to map pixel values to colors.
+            pixelValuesToColorFn: function(pixelValues) {
+              var value = pixelValues[0];
+              if (value === 0) return "transparent";
+              // Example thresholds; adjust these values based on your dataset's range.
+              if (value < 10) return "#e0f3db";
+              else if (value < 100) return "#a8ddb5";
+              else if (value < 1000) return "#43a2ca";
+              else return "#0868ac";
+            }
+          });
+          popLayer.addTo(map);
+          overlayLayers["Population"] = popLayer;
+          layerControl.addOverlay(popLayer, "Population");
+        });
+      });
 
     // Search function: search for any location using Nominatim
     function searchLocation() {
