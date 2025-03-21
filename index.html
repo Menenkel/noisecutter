@@ -75,34 +75,54 @@
       "Satellite View": satelliteMap
     };
 
-    // Unified display function with Chart.js and rotated x-axis labels
+    // Unified display function with two charts
     function displayData(props) {
       var container = document.getElementById("country-data");
       container.innerHTML = ""; // Clear previous content
 
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
-        // Create canvas element for the chart with increased height
-        var canvas = document.createElement("canvas");
-        canvas.id = "chartCanvas";
-        canvas.style.height = "400px"; // Increased vertical space
-        canvas.style.width = "100%";
-        container.appendChild(canvas);
+        // Create a container for both charts
+        var chartContainer = document.createElement("div");
+        chartContainer.id = "chartContainer";
+        chartContainer.style.display = "flex";
+        chartContainer.style.flexDirection = "column";
+        chartContainer.style.gap = "20px";
 
-        // Aggregate disaster data: get disaster types and counts
+        // Create first canvas for disaster count chart
+        var canvas1 = document.createElement("canvas");
+        canvas1.id = "chartCanvas1";
+        canvas1.style.height = "400px"; 
+        canvas1.style.width = "100%";
+
+        // Create second canvas for people affected chart
+        var canvas2 = document.createElement("canvas");
+        canvas2.id = "chartCanvas2";
+        canvas2.style.height = "400px"; 
+        canvas2.style.width = "100%";
+
+        chartContainer.appendChild(canvas1);
+        chartContainer.appendChild(canvas2);
+        container.appendChild(chartContainer);
+
+        // Aggregate data arrays
         var labels = [];
         var counts = [];
+        var peopleAffected = [];
         props.Disaster_Info.forEach(function(d) {
           labels.push(d.Type);
           counts.push(d.Count);
+          // Remove commas and parse integer
+          peopleAffected.push(parseInt(d["People Affected Since 2000"].replace(/,/g, ""), 10));
         });
 
-        var ctx = canvas.getContext('2d');
-        new Chart(ctx, {
+        // First chart: Disaster Count since 2000
+        var ctx1 = canvas1.getContext('2d');
+        new Chart(ctx1, {
           type: 'bar',
           data: {
             labels: labels,
             datasets: [{
-              label: 'Disaster Count',
+              label: 'Disaster Count since 2000',
               data: counts,
               backgroundColor: 'rgba(255, 120, 0, 0.6)',
               borderColor: 'rgba(255, 120, 0, 1)',
@@ -110,7 +130,7 @@
             }]
           },
           options: {
-            maintainAspectRatio: false,  // Allow canvas to use defined height
+            maintainAspectRatio: false,
             scales: {
               x: {
                 ticks: {
@@ -130,20 +150,56 @@
             }
           }
         });
-      } 
+
+        // Second chart: Total people affected since 2000
+        var ctx2 = canvas2.getContext('2d');
+        new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Total people affected since 2000',
+              data: peopleAffected,
+              backgroundColor: 'rgba(0, 120, 255, 0.6)',
+              borderColor: 'rgba(0, 120, 255, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                ticks: {
+                  maxRotation: 90,
+                  minRotation: 90
+                }
+              },
+              y: {
+                beginAtZero: true
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: (props.Country ? props.Country + " (" + props.ISO + ")" : "People Affected Data")
+              }
+            }
+          }
+        });
+      }
       // Hospital data branch (for Sudan health data)
       else if (props["#loc+amenity"] || props["#meta+healthcare"] || props["#loc +name"]) {
         var title = props["#loc +name"] || "Hospital";
         container.innerHTML = "<h3>" + title + "</h3>" +
           "<p>Amenity: " + (props["#loc+amenity"] || "N/A") + "</p>" +
           "<p>Healthcare: " + (props["#meta+healthcare"] || "N/A") + "</p>";
-      } 
+      }
       else if (props.Country) {
         container.innerHTML = "<h3>" + props.Country + "</h3><p>No detailed disaster data available.</p>";
-      } 
+      }
       else if (props.name) {
         container.innerHTML = "<h3>" + props.name + "</h3>";
-      } 
+      }
       else {
         container.innerHTML = "<p>No data available</p>";
       }
@@ -155,7 +211,7 @@
     // EMDAT disaster data layer: add all features but render point features invisibly
     var emdatLayer = L.geoJSON(null, {
       pointToLayer: function(feature, latlng) {
-        // Render points invisibly to build lookup without cluttering the map
+        // Render points invisibly so they don't clutter the map
         return L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 });
       },
       onEachFeature: function(feature, layer) {
@@ -194,7 +250,7 @@
       },
       onEachFeature: function(feature, layer) {
         layer.on("click", function() {
-          // Use iso_a3 property if available; otherwise fallback to feature.id
+          // Use iso_a3 if available, otherwise fallback to feature.id
           var iso = feature.properties.iso_a3 || feature.id;
           if (iso && emdatDataByISO[iso.toLowerCase()]) {
             displayData(emdatDataByISO[iso.toLowerCase()]);
