@@ -21,10 +21,11 @@
       background: white;
       box-shadow: -2px 0 5px rgba(0,0,0,0.3);
     }
-    /* Chart container style to limit vertical space and allow scrolling */
+    /* Chart container style with vertical scroll if needed */
     #chartContainer {
       max-height: 800px;
       overflow-y: auto;
+      width: 100%;
     }
     /* Position the search container on the left below the zoom controls */
     #search-container {
@@ -86,17 +87,21 @@
       container.innerHTML = ""; // Clear previous content
 
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
-        // Create a container for both charts
+        // Create container for both charts
         var chartContainer = document.createElement("div");
         chartContainer.id = "chartContainer";
 
         // Create first canvas for disaster count chart
         var canvas1 = document.createElement("canvas");
         canvas1.id = "chartCanvas1";
+        canvas1.style.height = "400px"; 
+        canvas1.style.width = "100%";
 
         // Create second canvas for people affected chart
         var canvas2 = document.createElement("canvas");
         canvas2.id = "chartCanvas2";
+        canvas2.style.height = "400px"; 
+        canvas2.style.width = "100%";
 
         chartContainer.appendChild(canvas1);
         chartContainer.appendChild(canvas2);
@@ -208,7 +213,6 @@
     // EMDAT disaster data layer: add all features but render point features invisibly
     var emdatLayer = L.geoJSON(null, {
       pointToLayer: function(feature, latlng) {
-        // Render points invisibly to build lookup without cluttering the map
         return L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 });
       },
       onEachFeature: function(feature, layer) {
@@ -247,7 +251,6 @@
       },
       onEachFeature: function(feature, layer) {
         layer.on("click", function() {
-          // Use iso_a3 property if available; otherwise fallback to feature.id
           var iso = feature.properties.iso_a3 || feature.id;
           if (iso && emdatDataByISO[iso.toLowerCase()]) {
             displayData(emdatDataByISO[iso.toLowerCase()]);
@@ -274,4 +277,58 @@
         return;
       }
       var encodedQuery = encodeURIComponent(query);
-      fetch("https://nominatim.openstreetmap.org/search?q=" + encodedQuery + "&format
+      fetch("https://nominatim.openstreetmap.org/search?q=" + encodedQuery + "&format=json&limit=1")
+        .then(response => response.json())
+        .then(data => {
+          if (data.length > 0) {
+            var boundingBox = data[0].boundingbox.map(Number);
+            var southWest = L.latLng(boundingBox[0], boundingBox[2]);
+            var northEast = L.latLng(boundingBox[1], boundingBox[3]);
+            var bounds = L.latLngBounds(southWest, northEast);
+            map.fitBounds(bounds);
+          } else {
+            alert("Location not found. Try a different query.");
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching location:", error);
+          alert("Failed to retrieve location. Try again later.");
+        });
+    }
+    window.searchLocation = searchLocation;
+
+    // Load EMDAT disaster data and build lookup table by ISO codes
+    fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
+      .then(response => response.json())
+      .then(data => {
+        emdatLayer.clearLayers();
+        emdatLayer.addData(data);
+        data.features.forEach(function(feature) {
+          var iso = feature.properties.ISO;
+          if (iso) {
+            emdatDataByISO[iso.toLowerCase()] = feature.properties;
+          }
+        });
+      })
+      .catch(error => console.error("Error loading Disaster GeoJSON:", error));
+
+    // Load Sudan health data
+    fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
+      .then(response => response.json())
+      .then(data => {
+        sudanLayer.clearLayers();
+        sudanLayer.addData(data);
+      })
+      .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
+
+    // Load country boundaries from a public source
+    fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
+      .then(response => response.json())
+      .then(data => {
+        countriesLayer.clearLayers();
+        countriesLayer.addData(data);
+      })
+      .catch(error => console.error("Error loading countries GeoJSON:", error));
+  </script>
+</body>
+</html>
