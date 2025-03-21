@@ -71,8 +71,7 @@
       "Satellite View": satelliteMap
     };
 
-    // Global display function: shows detailed disaster info if available,
-    // or falls back to showing the country name.
+    // Unified display function
     function displayData(props) {
       let content = "";
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
@@ -96,16 +95,18 @@
       document.getElementById("country-data").innerHTML = content;
     }
 
-    // Global variable for disaster data lookup by country (in lower case)
+    // Global disaster data lookup by country (lower-case keys)
     var emdatDataByCountry = {};
 
-    // EMDAT disaster data layer (could be hidden from control if you prefer)
+    // EMDAT disaster data layer: filter out any point features so only polygons are shown
     var emdatLayer = L.geoJSON(null, {
+      filter: function(feature) {
+        return feature.geometry.type !== "Point";
+      },
       style: function(feature) {
         return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
       },
       onEachFeature: function(feature, layer) {
-        // Optionally, if you want to keep click functionality on markers:
         layer.on("click", function() {
           displayData(feature.properties);
         });
@@ -130,28 +131,29 @@
       }
     }).addTo(map);
 
-    // Countries boundaries layer (no markers; polygons only)
+    // Countries boundaries layer: filter out point features so no default blue markers appear.
     var countriesLayer = L.geoJSON(null, {
+      filter: function(feature) {
+        return feature.geometry.type !== "Point";
+      },
       style: function(feature) {
-        return { color: "#3388ff", weight: 1, fillOpacity: 0.1 };
+        // Even though invisible, we keep the layer interactive.
+        return { color: "transparent", weight: 0, fillOpacity: 0 };
       },
       onEachFeature: function(feature, layer) {
         layer.on("click", function() {
-          // Use the country name from the boundaries feature to lookup disaster data.
           var countryName = feature.properties.name;
-          // Use lower-case for matching
           var data = emdatDataByCountry[countryName.toLowerCase()];
           if (data) {
             displayData(data);
           } else {
-            // Fallback: show country name only.
             displayData({ Country: countryName });
           }
         });
       }
     }).addTo(map);
 
-    // Add all overlays to the layer control
+    // Add overlays to layer control
     L.control.layers(baseMaps, {
       "EMDAT Data": emdatLayer,
       "Sudan HXL": sudanLayer,
@@ -191,7 +193,6 @@
       .then(data => {
         emdatLayer.clearLayers();
         emdatLayer.addData(data);
-        // Build lookup by country name (toLowerCase for matching)
         data.features.forEach(function(feature) {
           var country = feature.properties.Country;
           if (country) {
