@@ -81,9 +81,11 @@
       container.innerHTML = ""; // Clear previous content
 
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
-        // Create canvas element for the chart
+        // Create canvas element for the chart with increased height
         var canvas = document.createElement("canvas");
         canvas.id = "chartCanvas";
+        canvas.style.height = "400px"; // Increased vertical space
+        canvas.style.width = "100%";
         container.appendChild(canvas);
 
         // Aggregate disaster data: get disaster types and counts
@@ -108,6 +110,7 @@
             }]
           },
           options: {
+            maintainAspectRatio: false,  // Allow canvas to use defined height
             scales: {
               x: {
                 ticks: {
