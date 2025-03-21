@@ -24,13 +24,11 @@
       background: white;
       box-shadow: -2px 0 5px rgba(0,0,0,0.3);
     }
-    /* Chart container style with vertical scroll if needed */
     #chartContainer {
       max-height: 800px;
       overflow-y: auto;
       width: 100%;
     }
-    /* Position the search container on the left below the zoom controls */
     #search-container {
       position: absolute;
       top: 70px;
@@ -266,9 +264,11 @@
           console.log("Population GeoTIFF - min:", georaster.min, "max:", georaster.max);
           var minValue = (typeof georaster.min === "number") ? georaster.min : 0;
           var maxValue = (typeof georaster.max === "number") ? georaster.max : 100;
+          // Use a lower resolution to aggregate the raster into larger cells
           var popLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: 0.7,
+            resolution: 256,
             pixelValuesToColorFn: function(pixelValues) {
               var value = pixelValues[0];
               if (value === georaster.noDataValue || value === 0) return "transparent";
