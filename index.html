@@ -64,7 +64,7 @@
       "Satellite View": satelliteMap
     };
 
-    // Unified display function
+    // Unified display function including a branch for hospital data
     function displayData(props) {
       var content = "";
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
@@ -77,27 +77,42 @@
           content += `<p>Affected: ${affected}</p>`;
           content += `<hr>`;
         });
-      } else if (props.Country) {
+      }
+      // Hospital data branch
+      else if (props["#loc+amenity"] || props["#meta+healthcare"] || props["#loc +name"]) {
+        if (props["#loc +name"]) {
+          content += `<h3>${props["#loc +name"]}</h3>`;
+        } else {
+          content += `<h3>Hospital</h3>`;
+        }
+        if (props["#loc+amenity"]) {
+          content += `<p>Amenity: ${props["#loc+amenity"]}</p>`;
+        }
+        if (props["#meta+healthcare"]) {
+          content += `<p>Healthcare: ${props["#meta+healthcare"]}</p>`;
+        }
+      }
+      else if (props.Country) {
         content += `<h3>${props.Country}</h3>`;
         content += `<p>No detailed disaster data available.</p>`;
-      } else if (props.name) {
+      }
+      else if (props.name) {
         content += `<h3>${props.name}</h3>`;
-      } else {
+      }
+      else {
         content = "<p>No data available</p>";
       }
       document.getElementById("country-data").innerHTML = content;
     }
 
-    // Build lookup table using ISO codes
+    // Build lookup table using ISO codes from disaster data
     var emdatDataByISO = {};
 
-    // EMDAT disaster data layer (only polygons; filter out Point features)
+    // EMDAT disaster data layer: add all features (points are rendered invisibly)
     var emdatLayer = L.geoJSON(null, {
-      filter: function(feature) {
-        return feature.geometry.type !== "Point";
-      },
-      style: function(feature) {
-        return { color: "#ff7800", weight: 1, fillOpacity: 0.4 };
+      pointToLayer: function(feature, latlng) {
+        // Return an invisible marker
+        return L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 });
       },
       onEachFeature: function(feature, layer) {
         layer.on("click", function() {
@@ -106,7 +121,7 @@
       }
     }).addTo(map);
 
-    // Hospital data (Sudan health) layer with custom hospital icon
+    // Hospital data (Sudan health) layer with a custom hospital icon
     var healthIcon = L.icon({
       iconUrl: 'https://img.icons8.com/fluency/48/000000/hospital-2.png',
       iconSize: [32, 32],
@@ -135,7 +150,7 @@
       },
       onEachFeature: function(feature, layer) {
         layer.on("click", function() {
-          // Use iso_a3 if available, otherwise fallback to feature.id
+          // Try to match using iso_a3 property or fallback to feature.id
           var iso = feature.properties.iso_a3 || feature.id;
           if (iso && emdatDataByISO[iso.toLowerCase()]) {
             displayData(emdatDataByISO[iso.toLowerCase()]);
