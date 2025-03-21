@@ -90,10 +90,18 @@
                 });
             }
             // Check for hospital data (Sudan health data)
-            else if (props["#loc+amenity"] && props["#meta+healthcare"] && props["#loc +name"]) {
-                content += `<h3>${props["#loc +name"]}</h3>`;
-                content += `<p>Amenity: ${props["#loc+amenity"]}</p>`;
-                content += `<p>Healthcare: ${props["#meta+healthcare"]}</p>`;
+            else if (props["#loc+amenity"] || props["#meta+healthcare"] || props["#loc +name"]) {
+                if (props["#loc +name"]) {
+                    content += `<h3>${props["#loc +name"]}</h3>`;
+                } else {
+                    content += `<h3>Hospital</h3>`;
+                }
+                if (props["#loc+amenity"]) {
+                    content += `<p>Amenity: ${props["#loc+amenity"]}</p>`;
+                }
+                if (props["#meta+healthcare"]) {
+                    content += `<p>Healthcare: ${props["#meta+healthcare"]}</p>`;
+                }
             } else {
                 content = "<p>No data available</p>";
             }
@@ -112,16 +120,17 @@
             }
         }).addTo(map);
 
+        // Sudan health data layer rendered as circle markers
         var sudanLayer = L.geoJSON(null, {
-    pointToLayer: function(feature, latlng) {
-        return L.circleMarker(latlng, { color: "#0000ff", weight: 1, fillOpacity: 0.4 });
-    },
-    onEachFeature: function(feature, layer) {
-        layer.on("click", function() {
-            displayData(feature.properties);
-        });
-    }
-}).addTo(map);
+            pointToLayer: function(feature, latlng) {
+                return L.circleMarker(latlng, { color: "#0000ff", weight: 1, fillOpacity: 0.4 });
+            },
+            onEachFeature: function(feature, layer) {
+                layer.on("click", function() {
+                    displayData(feature.properties);
+                });
+            }
+        }).addTo(map);
 
         L.control.layers(baseMaps, { "EMDAT Data": emdatLayer, "Sudan HXL": sudanLayer }).addTo(map);
 
