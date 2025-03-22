@@ -79,6 +79,9 @@
   </div>
   
   <script>
+    // Global variable to store Sudan's polygon (as a GeoJSON geometry)
+    var sudanPolygon = null;
+    
     // Base map layers
     var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
     var osmHot = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors, Tiles courtesy of HOT' });
@@ -97,8 +100,8 @@
       "Dark Map": darkMap,
       "Satellite View": satelliteMap
     };
-
-    // Unified display function with two charts
+    
+    // Unified display function with two charts (unchanged)
     function displayData(props) {
       var container = document.getElementById("country-data");
       container.innerHTML = "";
@@ -213,7 +216,7 @@
       }
     }
     
-    // Build lookup table using ISO codes from disaster data
+    // Global lookup table for disaster data
     var emdatDataByISO = {};
     
     var emdatLayer = L.geoJSON(null, {
@@ -253,6 +256,10 @@
         return { color: "transparent", weight: 0, fillOpacity: 0 };
       },
       onEachFeature: function(feature, layer) {
+        // If this feature is Sudan, store its polygon for masking
+        if (feature.properties.name === "Sudan") {
+          sudanPolygon = feature.geometry;
+        }
         layer.on("click", function() {
           var iso = feature.properties.iso_a3 || feature.id;
           if (iso && emdatDataByISO[iso.toLowerCase()]) {
@@ -272,7 +279,7 @@
     };
     var layerControl = L.control.layers(baseMaps, overlayLayers).addTo(map);
     
-    // Population layer: load new GeoTIFF (Sudan_Pop_Rendered.tif) and add as a raster layer with dynamic dot colorization.
+    // Population layer: load new GeoTIFF (Sudan_Pop_Rendered.tif) and clip values outside Sudan
     fetch("https://menenkel.github.io/noisecutter/Sudan_Pop_Rendered.tif")
       .then(response => response.arrayBuffer())
       .then(arrayBuffer => {
@@ -284,10 +291,21 @@
             georaster: georaster,
             opacity: 0.7,
             resolution: 64,
-            pixelValuesToColorFn: function(pixelValues) {
+            pixelValuesToColorFn: function(pixelValues, col, row) {
               var value = pixelValues[0];
               if (value === georaster.noDataValue) return "transparent";
+              // Get the pixel center as a latLng using the layer's method:
+              var latlng = popLayer.pixelToLatLng(col, row);
+              // If we haven't yet loaded Sudan's polygon, show nothing
+              if (!sudanPolygon) return "transparent";
+              // Use Turf.js to check if the pixel is within Sudan boundaries
+              var pt = [latlng.lng, latlng.lat];
+              if (!turf.booleanPointInPolygon(pt, sudanPolygon)) {
+                return "transparent";
+              }
+              // Normalize value between min and max
               var normalized = (value - minValue) / (maxValue - minValue);
+              // Map normalized value to bright dots:
               if (normalized < 0.1) {
                 return "#000000";
               } else {
@@ -303,7 +321,7 @@
         });
       });
     
-    // Routing: Calculate driving route between two points using Leaflet Routing Machine.
+    // Routing: Calculate driving route between two points
     function calculateRoute() {
       var startAddress = document.getElementById("start").value.trim();
       var endAddress = document.getElementById("end").value.trim();
@@ -354,7 +372,7 @@
       });
     }
     
-    // Search for any location using Nominatim.
+    // Search for any location using Nominatim
     function searchLocation() {
       var query = document.getElementById("country-search").value.trim();
       if (!query) {
@@ -409,6 +427,12 @@
       .then(data => {
         countriesLayer.clearLayers();
         countriesLayer.addData(data);
+        // Extract Sudan polygon from countries GeoJSON.
+        data.features.forEach(function(feature) {
+          if (feature.properties.name === "Sudan") {
+            sudanPolygon = feature.geometry;
+          }
+        });
       })
       .catch(error => console.error("Error loading countries GeoJSON:", error));
   </script>
