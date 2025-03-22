@@ -31,10 +31,10 @@
       overflow-y: auto;
       width: 100%;
     }
-    /* Search container positioned on left */
+    /* Move the search container down by an extra 1cm */
     #search-container {
       position: absolute;
-      top: 70px;
+      top: calc(70px + 1cm);
       left: 10px;
       background: white;
       padding: 10px;
@@ -45,7 +45,7 @@
     /* Routing panel below the search container */
     #routing-panel {
       position: absolute;
-      top: 170px;
+      top: calc(170px + 1cm);
       left: 10px;
       background: white;
       padding: 10px;
@@ -98,7 +98,7 @@
       "Satellite View": satelliteMap
     };
 
-    // Unified display function with two charts (as before)
+    // Unified display function with two charts
     function displayData(props) {
       var container = document.getElementById("country-data");
       container.innerHTML = "";
@@ -280,7 +280,6 @@
           console.log("Population GeoTIFF - min:", georaster.min, "max:", georaster.max);
           var minValue = (typeof georaster.min === "number") ? georaster.min : 0;
           var maxValue = (typeof georaster.max === "number") ? georaster.max : 100;
-          // Use a lower resolution so cells are larger (i.e. appear as dots)
           var popLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: 0.7,
@@ -288,13 +287,12 @@
             pixelValuesToColorFn: function(pixelValues) {
               var value = pixelValues[0];
               if (value === georaster.noDataValue) return "transparent";
-              // Normalize the value between minValue and maxValue
               var normalized = (value - minValue) / (maxValue - minValue);
               if (normalized < 0.1) {
-                return "#000000"; // Dark background for very low values
+                return "#000000";
               } else {
-                var dotAlpha = (normalized - 0.1) / 0.9; // normalized between 0 and 1
-                dotAlpha = 0.3 + 0.7 * dotAlpha; // scale to 0.3-1
+                var dotAlpha = (normalized - 0.1) / 0.9;
+                dotAlpha = 0.3 + 0.7 * dotAlpha;
                 return "rgba(255, 255, 255, " + dotAlpha + ")";
               }
             }
@@ -305,7 +303,7 @@
         });
       });
     
-    // Routing: Calculate driving route between two points
+    // Routing: Calculate driving route between two points using Leaflet Routing Machine.
     function calculateRoute() {
       var startAddress = document.getElementById("start").value.trim();
       var endAddress = document.getElementById("end").value.trim();
@@ -326,12 +324,10 @@
         var startLatLng = L.latLng(results[0][0].lat, results[0][0].lon);
         var endLatLng = L.latLng(results[1][0].lat, results[1][0].lon);
         
-        // Create a routing control to calculate the route
+        // Create a routing control for the route.
         L.Routing.control({
           waypoints: [startLatLng, endLatLng],
-          router: new L.Routing.osrmv1({
-            serviceUrl: 'https://router.project-osrm.org/route/v1'
-          }),
+          router: new L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
           routeWhileDragging: false,
           showAlternatives: false,
           fitSelectedRoute: true,
@@ -346,9 +342,13 @@
           }
         }).on('routesfound', function(e) {
           var summary = e.routes[0].summary;
+          // Convert summary.totalTime (in seconds) to hours and minutes.
+          var totalSeconds = summary.totalTime;
+          var hours = Math.floor(totalSeconds / 3600);
+          var minutes = Math.round((totalSeconds % 3600) / 60);
           document.getElementById("route-info").innerHTML =
             "Total distance: " + (summary.totalDistance / 1000).toFixed(2) + " km<br>" +
-            "Estimated time: " + Math.round(summary.totalTime / 60) + " minutes";
+            "Estimated time: " + hours + " hr " + minutes + " min";
         }).addTo(map);
       }).catch(error => {
         console.error(error);
@@ -356,7 +356,7 @@
       });
     }
     
-    // Search for any location using Nominatim
+    // Search for any location using Nominatim.
     function searchLocation() {
       var query = document.getElementById("country-search").value.trim();
       if (!query) {
@@ -384,7 +384,6 @@
     }
     window.searchLocation = searchLocation;
     
-    // Load disaster data and build ISO lookup
     fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
       .then(response => response.json())
       .then(data => {
