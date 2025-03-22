@@ -6,7 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
   <script src="https://unpkg.com/leaflet-geosearch/dist/bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
   <!-- Chart.js -->
@@ -24,13 +26,12 @@
       background: white;
       box-shadow: -2px 0 5px rgba(0,0,0,0.3);
     }
-    /* Chart container style with vertical scroll if needed */
     #chartContainer {
       max-height: 800px;
       overflow-y: auto;
       width: 100%;
     }
-    /* Position the search container on the left below the zoom controls */
+    /* Search container positioned on left */
     #search-container {
       position: absolute;
       top: 70px;
@@ -41,6 +42,21 @@
       border-radius: 5px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
+    /* Routing panel below the search container */
+    #routing-panel {
+      position: absolute;
+      top: 170px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      z-index: 1000;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      width: 250px;
+    }
+    #routing-panel input { width: 90%; margin-bottom: 5px; }
+    #routing-panel button { width: 95%; }
+    #route-info { margin-top: 10px; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -49,11 +65,19 @@
     <h3>Click a country or hospital to see details</h3>
     <div id="country-data"></div>
   </div>
+  
   <div id="search-container">
     <input type="text" id="country-search" placeholder="Search for a location" onkeyup="if(event.key==='Enter') searchLocation()">
     <button onclick="searchLocation()">Search</button>
   </div>
-
+  
+  <div id="routing-panel">
+    <input id="start" type="text" placeholder="Start address">
+    <input id="end" type="text" placeholder="End address">
+    <button onclick="calculateRoute()">Calculate Route</button>
+    <div id="route-info"></div>
+  </div>
+  
   <script>
     // Base map layers
     var osmStandard = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
@@ -74,29 +98,29 @@
       "Satellite View": satelliteMap
     };
 
-    // Unified display function with two charts (unchanged)
+    // Unified display function with two charts (as before)
     function displayData(props) {
       var container = document.getElementById("country-data");
-      container.innerHTML = ""; // Clear previous content
-
+      container.innerHTML = "";
+      
       if (props.Disaster_Info && Array.isArray(props.Disaster_Info)) {
         var chartContainer = document.createElement("div");
         chartContainer.id = "chartContainer";
-
+      
         var canvas1 = document.createElement("canvas");
         canvas1.id = "chartCanvas1";
         canvas1.style.height = "400px"; 
         canvas1.style.width = "100%";
-
+      
         var canvas2 = document.createElement("canvas");
         canvas2.id = "chartCanvas2";
         canvas2.style.height = "400px"; 
         canvas2.style.width = "100%";
-
+      
         chartContainer.appendChild(canvas1);
         chartContainer.appendChild(canvas2);
         container.appendChild(chartContainer);
-
+      
         var labels = [];
         var counts = [];
         var peopleAffected = [];
@@ -105,7 +129,7 @@
           counts.push(d.Count);
           peopleAffected.push(parseInt(d["People Affected Since 2000"].replace(/,/g, ""), 10));
         });
-
+      
         var xAxisConfig = {
           ticks: {
             autoSkip: false,
@@ -115,7 +139,7 @@
           },
           offset: false
         };
-
+      
         var ctx1 = canvas1.getContext('2d');
         new Chart(ctx1, {
           type: 'bar',
@@ -143,7 +167,7 @@
             }
           }
         });
-
+      
         var ctx2 = canvas2.getContext('2d');
         new Chart(ctx2, {
           type: 'bar',
@@ -188,10 +212,10 @@
         container.innerHTML = "<p>No data available</p>";
       }
     }
-
+    
     // Build lookup table using ISO codes from disaster data
     var emdatDataByISO = {};
-
+    
     var emdatLayer = L.geoJSON(null, {
       pointToLayer: function(feature, latlng) {
         return L.circleMarker(latlng, { radius: 0, opacity: 0, fillOpacity: 0 });
@@ -202,7 +226,7 @@
         });
       }
     }).addTo(map);
-
+    
     var healthIcon = L.icon({
       iconUrl: 'https://img.icons8.com/fluency/48/000000/hospital-2.png',
       iconSize: [32, 32],
@@ -220,7 +244,7 @@
         });
       }
     }).addTo(map);
-
+    
     var countriesLayer = L.geoJSON(null, {
       filter: function(feature) {
         return feature.geometry.type !== "Point";
@@ -240,14 +264,14 @@
         });
       }
     }).addTo(map);
-
+    
     var overlayLayers = {
       "EMDAT Data": emdatLayer,
       "Sudan HXL": sudanLayer,
       "Countries": countriesLayer
     };
     var layerControl = L.control.layers(baseMaps, overlayLayers).addTo(map);
-
+    
     // Population layer: load GeoTIFF and add as a raster layer with dynamic dot colorization.
     fetch("https://menenkel.github.io/noisecutter/sdn_ppp_2020_UNadj_constrained.tif")
       .then(response => response.arrayBuffer())
@@ -256,7 +280,7 @@
           console.log("Population GeoTIFF - min:", georaster.min, "max:", georaster.max);
           var minValue = (typeof georaster.min === "number") ? georaster.min : 0;
           var maxValue = (typeof georaster.max === "number") ? georaster.max : 100;
-          // Set a lower resolution so cells are larger (i.e. appear as dots)
+          // Use a lower resolution so cells are larger (i.e. appear as dots)
           var popLayer = new GeoRasterLayer({
             georaster: georaster,
             opacity: 0.7,
@@ -266,14 +290,11 @@
               if (value === georaster.noDataValue) return "transparent";
               // Normalize the value between minValue and maxValue
               var normalized = (value - minValue) / (maxValue - minValue);
-              // If below 10% of the range, render as dark background (black)
               if (normalized < 0.1) {
-                return "#000000";
+                return "#000000"; // Dark background for very low values
               } else {
-                // For higher densities, calculate an alpha for white dots
-                var dotAlpha = (normalized - 0.1) / 0.9; // ranges from 0 to 1
-                // Scale alpha to be between 0.3 and 1 for visible dots
-                dotAlpha = 0.3 + 0.7 * dotAlpha;
+                var dotAlpha = (normalized - 0.1) / 0.9; // normalized between 0 and 1
+                dotAlpha = 0.3 + 0.7 * dotAlpha; // scale to 0.3-1
                 return "rgba(255, 255, 255, " + dotAlpha + ")";
               }
             }
@@ -283,7 +304,59 @@
           layerControl.addOverlay(popLayer, "Population");
         });
       });
-
+    
+    // Routing: Calculate driving route between two points
+    function calculateRoute() {
+      var startAddress = document.getElementById("start").value.trim();
+      var endAddress = document.getElementById("end").value.trim();
+      if (!startAddress || !endAddress) {
+        alert("Please enter both a start and an end address.");
+        return;
+      }
+      
+      Promise.all([
+        fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(startAddress) + "&format=json&limit=1").then(resp => resp.json()),
+        fetch("https://nominatim.openstreetmap.org/search?q=" + encodeURIComponent(endAddress) + "&format=json&limit=1").then(resp => resp.json())
+      ]).then(results => {
+        if (results[0].length === 0 || results[1].length === 0) {
+          alert("Could not geocode one of the addresses. Please try again.");
+          return;
+        }
+        
+        var startLatLng = L.latLng(results[0][0].lat, results[0][0].lon);
+        var endLatLng = L.latLng(results[1][0].lat, results[1][0].lon);
+        
+        // Create a routing control to calculate the route
+        L.Routing.control({
+          waypoints: [startLatLng, endLatLng],
+          router: new L.Routing.osrmv1({
+            serviceUrl: 'https://router.project-osrm.org/route/v1'
+          }),
+          routeWhileDragging: false,
+          showAlternatives: false,
+          fitSelectedRoute: true,
+          createMarker: function(i, wp, nWps) {
+            return L.marker(wp.latLng, {
+              icon: L.icon({
+                iconUrl: 'https://img.icons8.com/fluency/48/000000/marker.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+              })
+            });
+          }
+        }).on('routesfound', function(e) {
+          var summary = e.routes[0].summary;
+          document.getElementById("route-info").innerHTML =
+            "Total distance: " + (summary.totalDistance / 1000).toFixed(2) + " km<br>" +
+            "Estimated time: " + Math.round(summary.totalTime / 60) + " minutes";
+        }).addTo(map);
+      }).catch(error => {
+        console.error(error);
+        alert("An error occurred while calculating the route.");
+      });
+    }
+    
+    // Search for any location using Nominatim
     function searchLocation() {
       var query = document.getElementById("country-search").value.trim();
       if (!query) {
@@ -310,7 +383,8 @@
         });
     }
     window.searchLocation = searchLocation;
-
+    
+    // Load disaster data and build ISO lookup
     fetch("https://menenkel.github.io/noisecutter/EMDAT_20Mar2025.json")
       .then(response => response.json())
       .then(data => {
@@ -324,7 +398,7 @@
         });
       })
       .catch(error => console.error("Error loading Disaster GeoJSON:", error));
-
+    
     fetch("https://menenkel.github.io/noisecutter/sudan_hxl.json")
       .then(response => response.json())
       .then(data => {
@@ -332,7 +406,7 @@
         sudanLayer.addData(data);
       })
       .catch(error => console.error("Error loading Sudan HXL GeoJSON:", error));
-
+    
     fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
       .then(response => response.json())
       .then(data => {
