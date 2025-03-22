@@ -31,7 +31,7 @@
       overflow-y: auto;
       width: 100%;
     }
-    /* Move the search container down by an extra 1cm */
+    /* Move the search container down by 1cm */
     #search-container {
       position: absolute;
       top: calc(70px + 1cm);
@@ -272,8 +272,8 @@
     };
     var layerControl = L.control.layers(baseMaps, overlayLayers).addTo(map);
     
-    // Population layer: load GeoTIFF and add as a raster layer with dynamic dot colorization.
-    fetch("https://menenkel.github.io/noisecutter/sdn_ppp_2020_UNadj_constrained.tif")
+    // Population layer: load new GeoTIFF (Sudan_Pop_Rendered.tif) and add as a raster layer with dynamic dot colorization.
+    fetch("https://menenkel.github.io/noisecutter/Sudan_Pop_Rendered.tif")
       .then(response => response.arrayBuffer())
       .then(arrayBuffer => {
         parseGeoraster(arrayBuffer).then(georaster => {
@@ -324,7 +324,6 @@
         var startLatLng = L.latLng(results[0][0].lat, results[0][0].lon);
         var endLatLng = L.latLng(results[1][0].lat, results[1][0].lon);
         
-        // Create a routing control for the route.
         L.Routing.control({
           waypoints: [startLatLng, endLatLng],
           router: new L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
@@ -342,7 +341,6 @@
           }
         }).on('routesfound', function(e) {
           var summary = e.routes[0].summary;
-          // Convert summary.totalTime (in seconds) to hours and minutes.
           var totalSeconds = summary.totalTime;
           var hours = Math.floor(totalSeconds / 3600);
           var minutes = Math.round((totalSeconds % 3600) / 60);
